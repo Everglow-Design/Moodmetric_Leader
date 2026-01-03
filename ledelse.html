@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ledelses-dashboard</title>
+    <style>
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f4f6fb;
+            font-family: Arial, sans-serif;
+        }
+        .dashboard-container {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+            padding: 40px 32px;
+            max-width: 600px;
+            width: 95vw;
+            text-align: center;
+        }
+        h1 {
+            color: #2a3a5e;
+            margin-bottom: 18px;
+            font-size: 2em;
+        }
+        .section {
+            margin-bottom: 32px;
+        }
+        .stat {
+            font-size: 1.3em;
+            color: #2a3a5e;
+            margin-bottom: 10px;
+        }
+        .trend {
+            font-size: 1.05em;
+            color: #6a7a9e;
+            margin-bottom: 10px;
+        }
+        .explanation {
+            background: #eaf7f0;
+            border-radius: 10px;
+            padding: 16px;
+            color: #2a3a5e;
+            margin-bottom: 24px;
+        }
+        canvas {
+            margin-bottom: 18px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <h1>Ledelses-dashboard</h1>
+        <div class="explanation">
+            <strong>Forklaring:</strong> Dette dashboard viser kun aggregerede og anonymiserede nøgletal for trivsel på organisationsniveau. Ingen persondata, navne eller individuelle historikker er tilgængelige.
+        </div>
+        <div class="section">
+            <div class="stat" id="avg-stress">Gennemsnitligt stressniveau: ...</div>
+            <canvas id="stressTrend" width="400" height="120"></canvas>
+            <div class="trend" id="trend-desc">Trend: ...</div>
+        </div>
+        <div class="section">
+            <div class="stat" id="mood-dist">Humørfordeling: ...</div>
+            <canvas id="moodPie" width="400" height="120"></canvas>
+        </div>
+        <div class="section">
+            <div class="stat" id="participation">Deltagelsesgrad: ...</div>
+        </div>
+    </div>
+    <script>
+        const SUPABASE_URL = 'https://rwksvrxfsjfdikckwmzq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3a3N2cnhmc2pmZGlrY2t3bXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczOTY5MTksImV4cCI6MjA4Mjk3MjkxOX0.rddfbx0API_R62uLWJdM5QCMmqIwc-9b6XpgfNsbsOk';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Hent alle check-ins (ingen persondata)
+            const { data, error } = await _supabase
+                .from('CHECKINS_EMPLOYEE')
+                .select('stressniveau, emotion, dato')
+                .order('dato', { ascending: false });
+            if (!data || data.length === 0) return;
+            // Gennemsnitligt stressniveau (sidste 7 dage)
+            const now = new Date();
+            const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+            const last7days = data.filter(item => {
+                const d = new Date(item.dato);
+                return d >= sevenDaysAgo && d <= now;
+            });
+            const avgStress = last7days.length > 0 ? (last7days.reduce((sum, item) => sum + (item.stressniveau || 0), 0) / last7days.length).toFixed(1) : '...';
+            document.getElementById('avg-stress').textContent = `Gennemsnitligt stressniveau: ${avgStress}`;
+            // Trend (graf og tekst)
+            const trendCtx = document.getElementById('stressTrend').getContext('2d');
+            const stressByDay = [];
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6 + i);
+                const dStr = d.toISOString().slice(0, 10);
+                const found = last7days.filter(item => item.dato && item.dato.slice(0, 10) === dStr);
+                const avg = found.length > 0 ? found.reduce((sum, item) => sum + (item.stressniveau || 0), 0) / found.length : null;
+                stressByDay.push({ date: dStr, value: avg });
+            }
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: stressByDay.map(d => d.date.split('-').reverse().join('-')),
+                    datasets: [{
+                        label: 'Stressniveau',
+                        data: stressByDay.map(d => d.value),
+                        borderColor: '#2a3a5e',
+                        backgroundColor: 'rgba(42,58,94,0.08)',
+                        spanGaps: true,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#2a3a5e',
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 10,
+                            title: { display: true, text: 'Stressniveau' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+            // Trend tekst
+            let trendText = 'Trend: ...';
+            if (stressByDay.filter(d => d.value !== null).length > 2) {
+                const first = stressByDay.find(d => d.value !== null);
+                const last = [...stressByDay].reverse().find(d => d.value !== null);
+                if (last.value > first.value) trendText = 'Trend: Stressniveauet er stigende de sidste 7 dage';
+                else if (last.value < first.value) trendText = 'Trend: Stressniveauet er faldende de sidste 7 dage';
+                else trendText = 'Trend: Stressniveauet er stabilt de sidste 7 dage';
+            }
+            document.getElementById('trend-desc').textContent = trendText;
+            // Humørfordeling (sidste 7 dage)
+            const moodCounts = { positiv: 0, neutral: 0, negativ: 0 };
+            last7days.forEach(item => {
+                if (item.emotion === 'glad') moodCounts.positiv++;
+                else if (item.emotion === 'neutral') moodCounts.neutral++;
+                else if (item.emotion === 'trist' || item.emotion === 'træt') moodCounts.negativ++;
+            });
+            const totalMood = moodCounts.positiv + moodCounts.neutral + moodCounts.negativ;
+            const moodPercent = totalMood > 0 ? {
+                positiv: Math.round((moodCounts.positiv / totalMood) * 100),
+                neutral: Math.round((moodCounts.neutral / totalMood) * 100),
+                negativ: Math.round((moodCounts.negativ / totalMood) * 100)
+            } : { positiv: 0, neutral: 0, negativ: 0 };
+            document.getElementById('mood-dist').textContent = `Humørfordeling: ${moodPercent.neutral} % neutral, ${moodPercent.positiv} % positiv, ${moodPercent.negativ} % negativ`;
+            // Humør Pie Chart
+            const moodCtx = document.getElementById('moodPie').getContext('2d');
+            new Chart(moodCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Neutral', 'Positiv', 'Negativ'],
+                    datasets: [{
+                        data: [moodPercent.neutral, moodPercent.positiv, moodPercent.negativ],
+                        backgroundColor: ['#b0b8c9', '#7ed957', '#ff7f7f']
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: { display: true, position: 'bottom' }
+                    }
+                }
+            });
+            // Deltagelsesgrad (sidste 7 dage)
+            document.getElementById('participation').textContent = `Deltagelsesgrad: ${last7days.length} check-ins de seneste 7 dage`;
+        });
+    </script>
+</body>
+</html>

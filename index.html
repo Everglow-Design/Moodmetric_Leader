@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ledelses-login</title>
+    <style>
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f4f6fb;
+            font-family: Arial, sans-serif;
+        }
+        .login-container {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+            padding: 40px 32px;
+            max-width: 400px;
+            width: 95vw;
+            text-align: center;
+        }
+        h1 {
+            color: #2a3a5e;
+            margin-bottom: 18px;
+            font-size: 2em;
+        }
+        input, button {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #b0b8c9;
+            font-size: 1em;
+        }
+        button {
+            background: #2a3a5e;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        .error {
+            color: #d9534f;
+            margin-top: 10px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Ledelses-login</h1>
+        <form id="loginForm">
+            <input type="email" id="email" placeholder="Email" required><br>
+            <input type="password" id="password" placeholder="Adgangskode" required><br>
+            <button type="submit">Log ind</button>
+        </form>
+        <div class="error" id="errorMsg"></div>
+    </div>
+    <script>
+        const SUPABASE_URL = 'https://rwksvrxfsjfdikckwmzq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3a3N2cnhmc2pmZGlrY2t3bXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczOTY5MTksImV4cCI6MjA4Mjk3MjkxOX0.rddfbx0API_R62uLWJdM5QCMmqIwc-9b6XpgfNsbsOk';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                document.getElementById('errorMsg').textContent = 'Login fejlede: ' + error.message;
+                return;
+            }
+            // Her skal der tjekkes for ledelses-rolle
+            // Hvis bruger har rollen 'ledelse', send til ledelse-dashboard
+            // Ellers vis fejl
+            const user = data.user;
+            // Eksempel: tjek custom claim eller Supabase user_metadata
+            if (user && user.user_metadata && user.user_metadata.role === 'ledelse') {
+                window.location.href = 'ledelse.html';
+            } else {
+                document.getElementById('errorMsg').textContent = 'Du har ikke adgang til ledelses-dashboardet.';
+            }
+        });
+    </script>
+</body>
+</html>
