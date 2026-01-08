@@ -7,29 +7,44 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <nav>
-        <a href="index.html">Login</a> |
-        <a href="ledelse.html">Dashboard</a> |
-        <a href="analyse.html">Analyse</a> |
-        <a href="segmentering.html">Segmentering</a> |
-        <a href="advarsler.html">Advarsler</a> |
-        <a href="brugere.html">Bruger-adgang</a> |
-        <a href="rapporter.html">Rapporter</a>
-    </nav>
-    <h1>Analyse</h1>
-    <section style="margin-bottom: 36px;">
-        <h2>Udvikling over tid</h2>
-        <canvas id="trendChart" width="600" height="220"></canvas>
-    </section>
-    <section>
-        <h2>Periodesammenligning</h2>
-        <form id="compareForm" style="margin-bottom: 18px;">
-            <label>Periode 1: <input type="date" id="start1"> til <input type="date" id="end1"></label>
-            <label style="margin-left: 24px;">Periode 2: <input type="date" id="start2"> til <input type="date" id="end2"></label>
-            <button type="submit">Sammenlign</button>
-        </form>
-        <canvas id="compareChart" width="600" height="220"></canvas>
-    </section>
+    <div class="dashboard-container" style="position: relative;">
+        <button class="menu-btn" id="menuBtn" aria-label="Åbn menu">☰</button>
+        <nav class="side-menu" id="sideMenu">
+            <a href="ledelse.html">Dashboard</a>
+            <a href="analyse.html">Analyse</a>
+            <a href="segmentering.html">Segmentering</a>
+            <a href="advarsler.html">Advarsler</a>
+            <a href="brugere.html">Bruger-adgang</a>
+            <a href="rapporter.html">Rapporter</a>
+            <a href="index.html">Log ud</a>
+        </nav>
+        <h1>Analyse</h1>
+        <section style="margin-bottom: 36px;">
+            <h2>Udvikling over tid</h2>
+            <canvas id="trendChart" width="600" height="220"></canvas>
+        </section>
+        <section>
+            <h2>Periodesammenligning</h2>
+            <form id="compareForm" style="margin-bottom: 18px;">
+                <label>Periode 1: <input type="date" id="start1"> til <input type="date" id="end1"></label>
+                <label style="margin-left: 24px;">Periode 2: <input type="date" id="start2"> til <input type="date" id="end2"></label>
+                <button type="submit">Sammenlign</button>
+            </form>
+            <canvas id="compareChart" width="600" height="220"></canvas>
+        </section>
+    </div>
+    <script>
+        // Menu funktionalitet
+        const menuBtn = document.getElementById('menuBtn');
+        const sideMenu = document.getElementById('sideMenu');
+        menuBtn.addEventListener('click', function() {
+            sideMenu.classList.toggle('open');
+        });
+        document.addEventListener('click', function(e) {
+            if (!sideMenu.contains(e.target) && !menuBtn.contains(e.target)) {
+                sideMenu.classList.remove('open');
+            }
+        });
     <script>
     // Dummy data til graf over tid
     const trendLabels = ['Uge 1', 'Uge 2', 'Uge 3', 'Uge 4', 'Uge 5', 'Uge 6', 'Uge 7', 'Uge 8'];
