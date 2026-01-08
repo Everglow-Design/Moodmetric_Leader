@@ -79,12 +79,21 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3a3N2cnhmc2pmZGlrY2t3bXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczOTY5MTksImV4cCI6MjA4Mjk3MjkxOX0.rddfbx0API_R62uLWJdM5QCMmqIwc-9b6XpgfNsbsOk';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         document.addEventListener('DOMContentLoaded', async function() {
+            // Tjek om bruger er logget ind og har rollen 'ledelse'
+            const { data: authData } = await _supabase.auth.getUser();
+            const user = authData?.user;
+            if (!user || !user.user_metadata || user.user_metadata.role !== 'ledelse') {
+                window.location.href = 'index.html';
+                return;
+            }
+            // ...existing code...
             // Hent alle check-ins (ingen persondata)
             const { data, error } = await _supabase
                 .from('CHECKINS_EMPLOYEE')
                 .select('stressniveau, emotion, dato')
                 .order('dato', { ascending: false });
             if (!data || data.length === 0) return;
+            // ...existing code...
             // Gennemsnitligt stressniveau (sidste 7 dage)
             const now = new Date();
             const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
@@ -94,6 +103,7 @@
             });
             const avgStress = last7days.length > 0 ? (last7days.reduce((sum, item) => sum + (item.stressniveau || 0), 0) / last7days.length).toFixed(1) : '...';
             document.getElementById('avg-stress').textContent = `Gennemsnitligt stressniveau: ${avgStress}`;
+            // ...existing code...
             // Trend (graf og tekst)
             const trendCtx = document.getElementById('stressTrend').getContext('2d');
             const stressByDay = [];

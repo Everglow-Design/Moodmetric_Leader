@@ -72,12 +72,17 @@
                 document.getElementById('errorMsg').textContent = 'Login fejlede: ' + error.message;
                 return;
             }
-            // Her skal der tjekkes for ledelses-rolle
-            // Hvis bruger har rollen 'ledelse', send til ledelse-dashboard
-            // Ellers vis fejl
-            const user = data.user;
-            // Eksempel: tjek custom claim eller Supabase user_metadata
-            if (user && user.user_metadata && user.user_metadata.role === 'ledelse') {
+            // Tjek LEDER_LOGIN-tabellen for rolle
+            const { data: lederData, error: lederError } = await _supabase
+                .from('LEDER_LOGIN')
+                .select('rolle')
+                .eq('email', email)
+                .single();
+            if (lederError || !lederData || !lederData.rolle) {
+                document.getElementById('errorMsg').textContent = 'Du har ikke adgang til ledelses-dashboardet.';
+                return;
+            }
+            if (lederData.rolle.toLowerCase() === 'leder') {
                 window.location.href = 'ledelse.html';
             } else {
                 document.getElementById('errorMsg').textContent = 'Du har ikke adgang til ledelses-dashboardet.';
