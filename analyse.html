@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Analyse</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <nav>
@@ -16,7 +17,74 @@
         <a href="rapporter.html">Rapporter</a>
     </nav>
     <h1>Analyse</h1>
-    <p>Grafer over tid, periodesammenligning.</p>
-    <div id="analyse-indhold">Her kommer analyse-grafer og sammenligninger.</div>
+    <section style="margin-bottom: 36px;">
+        <h2>Udvikling over tid</h2>
+        <canvas id="trendChart" width="600" height="220"></canvas>
+    </section>
+    <section>
+        <h2>Periodesammenligning</h2>
+        <form id="compareForm" style="margin-bottom: 18px;">
+            <label>Periode 1: <input type="date" id="start1"> til <input type="date" id="end1"></label>
+            <label style="margin-left: 24px;">Periode 2: <input type="date" id="start2"> til <input type="date" id="end2"></label>
+            <button type="submit">Sammenlign</button>
+        </form>
+        <canvas id="compareChart" width="600" height="220"></canvas>
+    </section>
+    <script>
+    // Dummy data til graf over tid
+    const trendLabels = ['Uge 1', 'Uge 2', 'Uge 3', 'Uge 4', 'Uge 5', 'Uge 6', 'Uge 7', 'Uge 8'];
+    const trendData = [5.2, 5.5, 6.1, 5.8, 5.0, 4.7, 5.3, 5.9];
+    new Chart(document.getElementById('trendChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: trendLabels,
+            datasets: [{
+                label: 'Stressniveau',
+                data: trendData,
+                borderColor: '#2a3a5e',
+                backgroundColor: 'rgba(42,58,94,0.08)',
+                tension: 0.3,
+                pointRadius: 5,
+                pointBackgroundColor: '#2a3a5e',
+                pointBorderColor: '#fff',
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            scales: {
+                y: { min: 0, max: 10, title: { display: true, text: 'Stressniveau' } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // Dummy data til periodesammenligning
+    function getRandomData(len) {
+        return Array.from({length: len}, () => (Math.random() * 4 + 4).toFixed(1));
+    }
+    const compareChart = new Chart(document.getElementById('compareChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: trendLabels,
+            datasets: [
+                { label: 'Periode 1', data: getRandomData(trendLabels.length), borderColor: '#7ed957', backgroundColor: 'rgba(126,217,87,0.08)', tension: 0.3 },
+                { label: 'Periode 2', data: getRandomData(trendLabels.length), borderColor: '#ff7f7f', backgroundColor: 'rgba(255,127,127,0.08)', tension: 0.3 }
+            ]
+        },
+        options: {
+            scales: {
+                y: { min: 0, max: 10, title: { display: true, text: 'Stressniveau' } }
+            },
+            plugins: { legend: { display: true, position: 'bottom' } }
+        }
+    });
+    document.getElementById('compareForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        // Her kan du hente rigtige data baseret på valgte perioder
+        compareChart.data.datasets[0].data = getRandomData(trendLabels.length);
+        compareChart.data.datasets[1].data = getRandomData(trendLabels.length);
+        compareChart.update();
+    });
+    </script>
 </body>
 </html>
