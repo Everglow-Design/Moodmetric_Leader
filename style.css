@@ -56,12 +56,10 @@ canvas {
     min-width: 180px;
     display: none;
     flex-direction: column;
-    pointer-events: none;
 }
 .side-menu.open {
     display: flex;
     z-index: 1002;
-    pointer-events: auto;
 }
 .side-menu a {
     color: #2a3a5e;
