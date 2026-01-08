@@ -8,8 +8,9 @@
     <style>
         .chart-section canvas {
             width: 100% !important;
-            max-width: 800px;
-            height: 320px !important;
+            max-width: 1000px;
+            min-height: 280px;
+            height: 340px !important;
             margin: 0 auto 18px auto;
             display: block;
         }
@@ -57,7 +58,8 @@
             }
         });
         sideMenu.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
+            link.addEventListener('click', (evt) => {
+                evt.stopPropagation();
                 sideMenu.classList.remove('open');
             });
         });
