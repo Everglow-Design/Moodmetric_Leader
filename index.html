@@ -65,7 +65,7 @@
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const email = document.getElementById('email').value;
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             document.getElementById('errorMsg').textContent = '';
             // Prøv authentication
@@ -78,7 +78,7 @@
             const { data: lederDataArr, error: lederError } = await _supabase
                 .from('LEDER_LOGIN')
                 .select('rolle')
-                .eq('email', email)
+                .ilike('email', email)
                 .limit(1);
             if (lederError) {
                 document.getElementById('errorMsg').textContent = 'Databasefejl (LEDER_LOGIN): ' + lederError.message;
