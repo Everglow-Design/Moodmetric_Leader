@@ -12,10 +12,16 @@ body {
     border-radius: 18px;
     box-shadow: 0 2px 16px rgba(0,0,0,0.10);
     padding: 40px 32px;
-    max-width: 600px;
-    width: 95vw;
+    max-width: 900px;
+    width: 98vw;
     text-align: center;
     position: relative;
+    overflow: auto;
+canvas {
+    max-width: 100%;
+    height: auto !important;
+    margin-bottom: 18px;
+}
 }
 .menu-btn {
     position: absolute;
