@@ -5,6 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ledelses-dashboard</title>
     <style>
+        .menu-btn {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            background: #fff;
+            border: none;
+            font-size: 2em;
+            cursor: pointer;
+            z-index: 1001;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 4px 12px;
+            color: #2a3a5e;
+            transition: background 0.2s;
+        }
+        .menu-btn:hover {
+            background: #f4f6fb;
+        }
+        .side-menu {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+            padding: 18px 0 18px 0;
+            min-width: 180px;
+            display: none;
+            flex-direction: column;
+            z-index: 1002;
+        }
+        .side-menu.open {
+            display: flex;
+        }
+        .side-menu a {
+            color: #2a3a5e;
+            text-decoration: none;
+            padding: 10px 24px;
+            font-size: 1.08em;
+            text-align: left;
+            transition: background 0.15s;
+        }
+        .side-menu a:hover {
+            background: #f4f6fb;
+        }
+        @media (max-width: 600px) {
+            .menu-btn, .side-menu {
+                top: 10px;
+                left: 10px;
+            }
+            .dashboard-container {
+                padding-top: 60px;
+            }
+        }
         body {
             min-height: 100vh;
             margin: 0;
@@ -56,14 +110,15 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
-    <nav style="margin-bottom: 24px; text-align: center;">
-        <a href="index.html">Login</a> |
-        <a href="ledelse.html">Dashboard</a> |
-        <a href="analyse.html">Analyse</a> |
-        <a href="segmentering.html">Segmentering</a> |
-        <a href="advarsler.html">Advarsler</a> |
-        <a href="brugere.html">Bruger-adgang</a> |
+    <button class="menu-btn" id="menuBtn" aria-label="Åbn menu">☰</button>
+    <nav class="side-menu" id="sideMenu">
+        <a href="ledelse.html">Dashboard</a>
+        <a href="analyse.html">Analyse</a>
+        <a href="segmentering.html">Segmentering</a>
+        <a href="advarsler.html">Advarsler</a>
+        <a href="brugere.html">Bruger-adgang</a>
         <a href="rapporter.html">Rapporter</a>
+        <a href="index.html">Log ud</a>
     </nav>
     <div class="dashboard-container">
         <h1>Ledelses-dashboard</h1>
@@ -84,6 +139,18 @@
         </div>
     </div>
     <script>
+        // Menu funktionalitet
+        const menuBtn = document.getElementById('menuBtn');
+        const sideMenu = document.getElementById('sideMenu');
+        menuBtn.addEventListener('click', function() {
+            sideMenu.classList.toggle('open');
+        });
+        // Luk menu hvis man klikker udenfor
+        document.addEventListener('click', function(e) {
+            if (!sideMenu.contains(e.target) && !menuBtn.contains(e.target)) {
+                sideMenu.classList.remove('open');
+            }
+        });
         const SUPABASE_URL = 'https://rwksvrxfsjfdikckwmzq.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3a3N2cnhmc2pmZGlrY2t3bXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczOTY5MTksImV4cCI6MjA4Mjk3MjkxOX0.rddfbx0API_R62uLWJdM5QCMmqIwc-9b6XpgfNsbsOk';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
