@@ -67,9 +67,11 @@
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            document.getElementById('errorMsg').textContent = '';
+            // Prøv authentication
             const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
             if (error) {
-                document.getElementById('errorMsg').textContent = 'Login fejlede: ' + error.message;
+                document.getElementById('errorMsg').textContent = 'Login fejlede (authentication): ' + error.message;
                 return;
             }
             // Tjek LEDER_LOGIN-tabellen for rolle
@@ -78,14 +80,22 @@
                 .select('rolle')
                 .eq('email', email)
                 .single();
-            if (lederError || !lederData || !lederData.rolle) {
-                document.getElementById('errorMsg').textContent = 'Du har ikke adgang til ledelses-dashboardet.';
+            if (lederError) {
+                document.getElementById('errorMsg').textContent = 'Databasefejl (LEDER_LOGIN): ' + lederError.message;
+                return;
+            }
+            if (!lederData) {
+                document.getElementById('errorMsg').textContent = 'Bruger ikke fundet i LEDER_LOGIN-tabellen.';
+                return;
+            }
+            if (!lederData.rolle) {
+                document.getElementById('errorMsg').textContent = 'Ingen rolle fundet for bruger i LEDER_LOGIN.';
                 return;
             }
             if (lederData.rolle.toLowerCase() === 'leder') {
                 window.location.href = 'ledelse.html';
             } else {
-                document.getElementById('errorMsg').textContent = 'Du har ikke adgang til ledelses-dashboardet.';
+                document.getElementById('errorMsg').textContent = 'Du har ikke adgang til ledelses-dashboardet (forkert rolle: ' + lederData.rolle + ')';
             }
         });
     </script>
