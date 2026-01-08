@@ -75,19 +75,20 @@
                 return;
             }
             // Tjek LEDER_LOGIN-tabellen for rolle
-            const { data: lederData, error: lederError } = await _supabase
+            const { data: lederDataArr, error: lederError } = await _supabase
                 .from('LEDER_LOGIN')
                 .select('rolle')
                 .eq('email', email)
-                .single();
+                .limit(1);
             if (lederError) {
                 document.getElementById('errorMsg').textContent = 'Databasefejl (LEDER_LOGIN): ' + lederError.message;
                 return;
             }
-            if (!lederData) {
+            if (!lederDataArr || lederDataArr.length === 0) {
                 document.getElementById('errorMsg').textContent = 'Bruger ikke fundet i LEDER_LOGIN-tabellen.';
                 return;
             }
+            const lederData = lederDataArr[0];
             if (!lederData.rolle) {
                 document.getElementById('errorMsg').textContent = 'Ingen rolle fundet for bruger i LEDER_LOGIN.';
                 return;
