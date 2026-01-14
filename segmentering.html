@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="da">
 <head>
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <meta charset="UTF-8">
     <title>Segmentering / Teams</title>
     <link rel="stylesheet" href="style.css">
@@ -52,6 +53,83 @@
             </section>
     </div>
     <script>
+                // Supabase setup
+                const SUPABASE_URL = 'https://rwksvrxfsjfdikckwmzq.supabase.co';
+                const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3a3N2cnhmc2pmZGlrY2t3bXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczOTY5MTksImV4cCI6MjA4Mjk3MjkxOX0.rddfbx0API_R62uLWJdM5QCMmqIwc-9b6XpgfNsbsOk';
+                const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+                // Load teams and members
+                async function loadTeams() {
+                    const { data: teams } = await _supabase.from('TEAMS').select('*').order('id');
+                    const teamList = document.getElementById('teamList');
+                    const teamSelect = document.getElementById('teamSelect');
+                    const compareTeam1 = document.getElementById('compareTeam1');
+                    const compareTeam2 = document.getElementById('compareTeam2');
+                    teamList.innerHTML = '';
+                    teamSelect.innerHTML = '';
+                    compareTeam1.innerHTML = '';
+                    compareTeam2.innerHTML = '';
+                    if (teams && teams.length) {
+                        teams.forEach(team => {
+                            const li = document.createElement('div');
+                            li.textContent = team.navn;
+                            teamList.appendChild(li);
+                            // Dropdowns
+                            const opt1 = document.createElement('option');
+                            opt1.value = team.id;
+                            opt1.textContent = team.navn;
+                            teamSelect.appendChild(opt1);
+                            const opt2 = document.createElement('option');
+                            opt2.value = team.id;
+                            opt2.textContent = team.navn;
+                            compareTeam1.appendChild(opt2.cloneNode(true));
+                            compareTeam2.appendChild(opt2.cloneNode(true));
+                        });
+                    }
+                    loadTeamMembers();
+                }
+
+                // Opret team
+                document.getElementById('createTeamForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const name = document.getElementById('teamName').value.trim();
+                    if (!name) return;
+                    await _supabase.from('TEAMS').insert([{ navn: name }]);
+                    document.getElementById('teamName').value = '';
+                    loadTeams();
+                });
+
+                // Tildel medarbejder til team
+                document.getElementById('assignForm').addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const teamId = document.getElementById('teamSelect').value;
+                    const employee = document.getElementById('employeeName').value.trim();
+                    if (!teamId || !employee) return;
+                    await _supabase.from('TEAM_MEMBERS').insert([{ team_id: teamId, navn: employee }]);
+                    document.getElementById('employeeName').value = '';
+                    loadTeamMembers();
+                });
+
+                // Vis medlemmer for valgt team
+                async function loadTeamMembers() {
+                    const teamId = document.getElementById('teamSelect').value;
+                    if (!teamId) return;
+                    const { data: members } = await _supabase.from('TEAM_MEMBERS').select('*').eq('team_id', teamId);
+                    const teamMembers = document.getElementById('teamMembers');
+                    teamMembers.innerHTML = '<strong>Medlemmer:</strong><br>';
+                    if (members && members.length) {
+                        members.forEach(m => {
+                            teamMembers.innerHTML += m.navn + '<br>';
+                        });
+                    } else {
+                        teamMembers.innerHTML += '<em>Ingen medlemmer</em>';
+                    }
+                }
+
+                document.getElementById('teamSelect').addEventListener('change', loadTeamMembers);
+
+                // Init
+                loadTeams();
         // Menu funktionalitet
         const menuBtn = document.getElementById('menuBtn');
         const sideMenu = document.getElementById('sideMenu');
