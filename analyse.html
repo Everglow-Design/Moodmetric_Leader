@@ -68,6 +68,7 @@
 
         let allData = [];
         async function loadData() {
+                        console.log('Supabase data:', data);
             const { data, error } = await _supabase
                 .from('CHECKINS_EMPLOYEE')
                 .select('stressniveau, dato');
@@ -94,6 +95,7 @@
         }
 
         function renderTrendChart() {
+                        console.log('allData:', allData);
             // Udvikling over tid (sidste 8 uger)
             const today = new Date();
             const weeks = 8;
@@ -114,6 +116,14 @@
             }
             const ctx = document.getElementById('trendChart').getContext('2d');
             if (window.trendChartObj) window.trendChartObj.destroy();
+            if (weekAverages.every(v => v === null)) {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.font = '20px Arial';
+                ctx.fillStyle = '#888';
+                ctx.textAlign = 'center';
+                ctx.fillText('Ingen data tilgængelig for perioden', ctx.canvas.width/2, ctx.canvas.height/2);
+                return;
+            }
             window.trendChartObj = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -161,7 +171,18 @@
                     return found.length > 0 ? found.reduce((sum, d) => sum + d.stressniveau, 0) / found.length : null;
                 });
             }
+            console.log('compare labels:', labels);
+            console.log('compare data1:', data1);
+            console.log('compare data2:', data2);
             if (window.compareChartObj) window.compareChartObj.destroy();
+            if ((!data1.length || data1.every(v => v === null)) && (!data2.length || data2.every(v => v === null))) {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.font = '20px Arial';
+                ctx.fillStyle = '#888';
+                ctx.textAlign = 'center';
+                ctx.fillText('Ingen data tilgængelig for valgte perioder', ctx.canvas.width/2, ctx.canvas.height/2);
+                return;
+            }
             window.compareChartObj = new Chart(ctx, {
                 type: 'line',
                 data: {
