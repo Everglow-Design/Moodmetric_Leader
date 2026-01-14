@@ -69,10 +69,10 @@
 
         let allData = [];
         async function loadData() {
-                        console.log('Supabase data:', data);
             const { data, error } = await _supabase
                 .from('CHECKINS_EMPLOYEE')
                 .select('stressniveau, dato');
+            console.log('Supabase data:', data);
             if (error) {
                 alert('Fejl ved hentning af data: ' + error.message);
                 return;
