@@ -104,7 +104,11 @@
                 const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
                 const dStr = d.toISOString().slice(0, 10);
                 days.push(dStr);
-                const found = allData.filter(item => item.dato === dStr);
+                const found = allData.filter(item => {
+                    // Sammenlign kun på YYYY-MM-DD
+                    const itemDate = (item.dato || '').slice(0, 10);
+                    return itemDate === dStr;
+                });
                 const avg = found.length > 0 ? found.reduce((sum, d) => sum + d.stressniveau, 0) / found.length : null;
                 values.push(avg);
             }
