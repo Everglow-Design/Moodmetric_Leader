@@ -121,8 +121,6 @@
                 return;
             }
             console.log('allData:', allData);
-                const avg = found.length > 0 ? found.reduce((sum, d) => sum + d.stressniveau, 0) / found.length : null;
-                values.push(avg);
             }
             const ctx = document.getElementById('trendChart').getContext('2d');
             if (window.trendChartObj) window.trendChartObj.destroy();
