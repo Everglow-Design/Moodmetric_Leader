@@ -97,7 +97,9 @@
 
         function renderTrendChart() {
             // Udvikling over tid (seneste 7 dage)
-            const today = new Date();
+            // Brug lokal tid for at undgå UTC-forskydning
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const days = [];
             const values = [];
             for (let i = 6; i >= 0; i--) {
