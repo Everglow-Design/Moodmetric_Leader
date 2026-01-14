@@ -73,9 +73,18 @@
                 latest[c.user_id] = c;
             }
         });
+        // Hent medarbejdernumre
+        const userIds = Object.values(latest).map(c => c.user_id);
+        const { data: profiles } = await _supabase
+            .from('PROFILES_EMPLOYEE')
+            .select('id, medarbejdernummer')
+            .in('id', userIds);
+        const idToNum = {};
+        if (profiles) profiles.forEach(p => { idToNum[p.id] = p.medarbejdernummer || p.id; });
         const rows = Object.values(latest).map(c => {
             const level = getRiskLevel(c.stressniveau);
-            return `<tr><td>${c.user_id}</td><td>${c.stressniveau}</td><td>${riskEmoji(level)} ${level}</td><td>${c.dato.slice(0,10)}</td></tr>`;
+            const visNummer = idToNum[c.user_id] || c.user_id;
+            return `<tr><td>${visNummer}</td><td>${c.stressniveau}</td><td>${riskEmoji(level)} ${level}</td><td>${c.dato.slice(0,10)}</td></tr>`;
         });
         document.getElementById('autoFlags').innerHTML = `<table style="width:100%;max-width:500px;"><tr><th>Medarbejder</th><th>Trivselstal</th><th>Risiko</th><th>Dato</th></tr>${rows.join('')}</table>`;
     }
@@ -99,7 +108,18 @@
             document.getElementById('aktiveAdvarsler').innerHTML = '<em>Ingen aktive advarsler</em>';
             return;
         }
-        const rows = alerts.map(c => `<tr><td>${c.user_id}</td><td>${c.stressniveau}</td><td>${riskEmoji(getRiskLevel(c.stressniveau))}</td><td>${c.dato.slice(0,10)}</td></tr>`);
+        // Hent medarbejdernumre
+        const userIds = alerts.map(c => c.user_id);
+        const { data: profiles } = await _supabase
+            .from('PROFILES_EMPLOYEE')
+            .select('id, medarbejdernummer')
+            .in('id', userIds);
+        const idToNum = {};
+        if (profiles) profiles.forEach(p => { idToNum[p.id] = p.medarbejdernummer || p.id; });
+        const rows = alerts.map(c => {
+            const visNummer = idToNum[c.user_id] || c.user_id;
+            return `<tr><td>${visNummer}</td><td>${c.stressniveau}</td><td>${riskEmoji(getRiskLevel(c.stressniveau))}</td><td>${c.dato.slice(0,10)}</td></tr>`;
+        });
         document.getElementById('aktiveAdvarsler').innerHTML = `<table style="width:100%;max-width:500px;"><tr><th>Medarbejder</th><th>Trivselstal</th><th>Risiko</th><th>Dato</th></tr>${rows.join('')}</table>`;
     }
 
@@ -115,7 +135,18 @@
             document.getElementById('advarslerHistorik').innerHTML = '<em>Ingen historiske advarsler</em>';
             return;
         }
-        const rows = historik.map(c => `<tr><td>${c.user_id}</td><td>${c.stressniveau}</td><td>${riskEmoji(getRiskLevel(c.stressniveau))}</td><td>${c.dato.slice(0,10)}</td></tr>`);
+        // Hent medarbejdernumre
+        const userIds = historik.map(c => c.user_id);
+        const { data: profiles } = await _supabase
+            .from('PROFILES_EMPLOYEE')
+            .select('id, medarbejdernummer')
+            .in('id', userIds);
+        const idToNum = {};
+        if (profiles) profiles.forEach(p => { idToNum[p.id] = p.medarbejdernummer || p.id; });
+        const rows = historik.map(c => {
+            const visNummer = idToNum[c.user_id] || c.user_id;
+            return `<tr><td>${visNummer}</td><td>${c.stressniveau}</td><td>${riskEmoji(getRiskLevel(c.stressniveau))}</td><td>${c.dato.slice(0,10)}</td></tr>`;
+        });
         document.getElementById('advarslerHistorik').innerHTML = `<table style="width:100%;max-width:500px;"><tr><th>Medarbejder</th><th>Trivselstal</th><th>Risiko</th><th>Dato</th></tr>${rows.join('')}</table>`;
     }
 
