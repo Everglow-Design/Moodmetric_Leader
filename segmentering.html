@@ -25,6 +25,7 @@
                 <h2>Opret team/afdeling</h2>
                 <form id="createTeamForm" style="margin-bottom: 18px;">
                     <input type="text" id="teamName" placeholder="Teamnavn" required style="padding: 6px;">
+                    <input type="text" id="teamGroup" placeholder="Gruppe/afdeling" required style="padding: 6px;">
                     <button type="submit">Opret</button>
                 </form>
                 <div id="teamList"></div>
@@ -70,20 +71,32 @@
                     compareTeam1.innerHTML = '';
                     compareTeam2.innerHTML = '';
                     if (teams && teams.length) {
+                        // Gruppér teams efter gruppe
+                        const grupper = {};
                         teams.forEach(team => {
-                            const li = document.createElement('div');
-                            li.textContent = team.navn;
-                            teamList.appendChild(li);
-                            // Dropdowns
-                            const opt1 = document.createElement('option');
-                            opt1.value = team.id;
-                            opt1.textContent = team.navn;
-                            teamSelect.appendChild(opt1);
-                            const opt2 = document.createElement('option');
-                            opt2.value = team.id;
-                            opt2.textContent = team.navn;
-                            compareTeam1.appendChild(opt2.cloneNode(true));
-                            compareTeam2.appendChild(opt2.cloneNode(true));
+                            if (!grupper[team.gruppe]) grupper[team.gruppe] = [];
+                            grupper[team.gruppe].push(team);
+                        });
+                        Object.keys(grupper).forEach(gruppeNavn => {
+                            const gruppeDiv = document.createElement('div');
+                            gruppeDiv.style.marginBottom = '10px';
+                            gruppeDiv.innerHTML = `<strong>${gruppeNavn || 'Uden gruppe'}</strong><br>`;
+                            grupper[gruppeNavn].forEach(team => {
+                                const li = document.createElement('div');
+                                li.textContent = team.navn;
+                                gruppeDiv.appendChild(li);
+                                // Dropdowns
+                                const opt1 = document.createElement('option');
+                                opt1.value = team.id;
+                                opt1.textContent = team.navn + (gruppeNavn ? ` (${gruppeNavn})` : '');
+                                teamSelect.appendChild(opt1);
+                                const opt2 = document.createElement('option');
+                                opt2.value = team.id;
+                                opt2.textContent = team.navn + (gruppeNavn ? ` (${gruppeNavn})` : '');
+                                compareTeam1.appendChild(opt2.cloneNode(true));
+                                compareTeam2.appendChild(opt2.cloneNode(true));
+                            });
+                            teamList.appendChild(gruppeDiv);
                         });
                     }
                     loadTeamMembers();
@@ -93,9 +106,11 @@
                 document.getElementById('createTeamForm').addEventListener('submit', async function(e) {
                     e.preventDefault();
                     const name = document.getElementById('teamName').value.trim();
-                    if (!name) return;
-                    await _supabase.from('TEAMS').insert([{ navn: name }]);
+                    const group = document.getElementById('teamGroup').value.trim();
+                    if (!name || !group) return;
+                    await _supabase.from('TEAMS').insert([{ navn: name, gruppe: group }]);
                     document.getElementById('teamName').value = '';
+                    document.getElementById('teamGroup').value = '';
                     loadTeams();
                 });
 
