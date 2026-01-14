@@ -98,12 +98,13 @@
         function renderTrendChart() {
             // Udvikling over tid (seneste 7 dage)
             // Brug lokal tid for at undgå UTC-forskydning
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                // Brug UTC for at undgå lokale tidszonefejl
+                const now = new Date();
+                const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
             const days = [];
             const values = [];
             for (let i = 0; i < 7; i++) {
-                const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6 + i);
+                    const d = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate() - 6 + i));
                 const dStr = d.toISOString().slice(0, 10);
                 days.push(dStr);
                 const found = allData.filter(item => {
