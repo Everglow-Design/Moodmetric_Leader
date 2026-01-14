@@ -147,11 +147,11 @@
                                 // Dropdowns
                                 const opt1 = document.createElement('option');
                                 opt1.value = team.id;
-                                opt1.textContent = team.navn + (gruppeNavn ? ` (${gruppeNavn})` : '');
+                                opt1.textContent = team.navn;
                                 teamSelect.appendChild(opt1);
                                 const opt2 = document.createElement('option');
                                 opt2.value = team.id;
-                                opt2.textContent = team.navn + (gruppeNavn ? ` (${gruppeNavn})` : '');
+                                opt2.textContent = team.navn;
                                 compareTeam1.appendChild(opt2.cloneNode(true));
                                 compareTeam2.appendChild(opt2.cloneNode(true));
                             });
