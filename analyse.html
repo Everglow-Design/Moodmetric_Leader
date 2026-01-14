@@ -78,8 +78,8 @@
             }
             allData = data.map(d => ({
                 stressniveau: d.stressniveau,
-                dato: d.dato.slice(0, 10)
-            }));
+                dato: (d.dato ? d.dato.slice(0, 10) : null)
+            })).filter(d => d.dato && !isNaN(new Date(d.dato).getTime()));
             renderTrendChart();
             renderCompareChart();
         }
@@ -96,34 +96,27 @@
 
         function renderTrendChart() {
                         console.log('allData:', allData);
-            // Udvikling over tid (sidste 8 uger)
+            // Udvikling over tid (seneste 7 dage)
             const today = new Date();
-            const weeks = 8;
-            const weekLabels = [];
-            const weekAverages = [];
-            for (let i = weeks - 1; i >= 0; i--) {
-                const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() - i * 7 + 1);
-                const weekEnd = new Date(weekStart);
-                weekEnd.setDate(weekEnd.getDate() + 6);
-                const label = `Uge ${weeks - i}`;
-                weekLabels.push(label);
-                const weekData = allData.filter(d => {
-                    const dDate = new Date(d.dato);
-                    return dDate >= weekStart && dDate <= weekEnd;
-                });
-                const avg = weekData.length > 0 ? weekData.reduce((sum, d) => sum + d.stressniveau, 0) / weekData.length : null;
-                weekAverages.push(avg);
+            const days = [];
+            const values = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+                const dStr = d.toISOString().slice(0, 10);
+                days.push(dStr);
+                const found = allData.filter(item => item.dato === dStr);
+                const avg = found.length > 0 ? found.reduce((sum, d) => sum + d.stressniveau, 0) / found.length : null;
+                values.push(avg);
             }
             const ctx = document.getElementById('trendChart').getContext('2d');
             if (window.trendChartObj) window.trendChartObj.destroy();
-            // Vis altid grafen, også hvis alle værdier er null (ingen prikker vises)
             window.trendChartObj = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: weekLabels,
+                    labels: days,
                     datasets: [{
                         label: 'Stressniveau',
-                        data: weekAverages,
+                        data: values,
                         borderColor: '#2a3a5e',
                         backgroundColor: 'rgba(42,58,94,0.08)',
                         tension: 0.3,
@@ -155,12 +148,12 @@
                 labels = days1.length > days2.length ? days1 : days2;
                 // Periode 1 data
                 data1 = labels.map(date => {
-                    const found = allData.filter(d => d.dato === date && new Date(date) >= new Date(period1.start) && new Date(date) <= new Date(period1.end));
+                    const found = allData.filter(d => d.dato === date && date >= period1.start && date <= period1.end);
                     return found.length > 0 ? found.reduce((sum, d) => sum + d.stressniveau, 0) / found.length : null;
                 });
                 // Periode 2 data
                 data2 = labels.map(date => {
-                    const found = allData.filter(d => d.dato === date && new Date(date) >= new Date(period2.start) && new Date(date) <= new Date(period2.end));
+                    const found = allData.filter(d => d.dato === date && date >= period2.start && date <= period2.end);
                     return found.length > 0 ? found.reduce((sum, d) => sum + d.stressniveau, 0) / found.length : null;
                 });
             }
