@@ -20,6 +20,36 @@
         <h1>Segmentering / Teams</h1>
         <p>Afdelinger, teams, sammenligning (uden persondata).</p>
         <div id="segmentering-indhold">Her kommer segmenterings- og teamdata.</div>
+            <section class="section" style="margin-top: 24px;">
+                <h2>Opret team/afdeling</h2>
+                <form id="createTeamForm" style="margin-bottom: 18px;">
+                    <input type="text" id="teamName" placeholder="Teamnavn" required style="padding: 6px;">
+                    <button type="submit">Opret</button>
+                </form>
+                <div id="teamList"></div>
+            </section>
+            <section class="section">
+                <h2>Tildel medarbejdere til team</h2>
+                <form id="assignForm" style="margin-bottom: 18px;">
+                    <select id="teamSelect"></select>
+                    <input type="text" id="employeeName" placeholder="Medarbejdernavn" required style="padding: 6px;">
+                    <button type="submit">Tildel</button>
+                </form>
+                <div id="teamMembers"></div>
+            </section>
+            <section class="section">
+                <h2>Aggregerede data pr. team</h2>
+                <div id="teamData"></div>
+            </section>
+            <section class="section">
+                <h2>Sammenlign teams</h2>
+                <form id="compareTeamsForm" style="margin-bottom: 18px;">
+                    <select id="compareTeam1"></select>
+                    <select id="compareTeam2"></select>
+                    <button type="submit">Sammenlign</button>
+                </form>
+                <div id="compareResult"></div>
+            </section>
     </div>
     <script>
         // Menu funktionalitet
