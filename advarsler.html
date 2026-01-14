@@ -18,21 +18,144 @@
             <a href="index.html">Log ud</a>
         </nav>
         <h1>Advarsler & Tærskler</h1>
-        <p>Overblik over flags og justering af tærskler.</p>
-        <div id="advarsler-indhold">Her kommer advarsler og tærskeljustering.</div>
+        <section class="section">
+            <h2>Automatisk flag ved risikoniveauer</h2>
+            <div id="autoFlags"></div>
+        </section>
+        <section class="section">
+            <h2>Oversigt over aktive advarsler</h2>
+            <div id="aktiveAdvarsler"></div>
+        </section>
+        <section class="section">
+            <h2>Justér tærskelværdier</h2>
+            <form id="thresholdForm" style="margin-bottom: 12px;">
+                <label>Rød/gul grænse: <input type="number" step="0.1" id="lowThreshold" style="width:60px;"></label>
+                <label>Gul/grøn grænse: <input type="number" step="0.1" id="mediumThreshold" style="width:60px;"> </label>
+                <button type="submit">Gem</button>
+            </form>
+        </section>
+        <section class="section">
+            <h2>Historik over tidligere advarsler</h2>
+            <div id="advarslerHistorik"></div>
+        </section>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <script>
-        // Menu funktionalitet
-        const menuBtn = document.getElementById('menuBtn');
-        const sideMenu = document.getElementById('sideMenu');
-        menuBtn.addEventListener('click', function() {
-            sideMenu.classList.toggle('open');
-        });
-        document.addEventListener('click', function(e) {
-            if (!sideMenu.contains(e.target) && !menuBtn.contains(e.target)) {
-                sideMenu.classList.remove('open');
+    // Supabase setup
+    const SUPABASE_URL = 'https://rwksvrxfsjfdikckwmzq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3a3N2cnhmc2pmZGlrY2t3bXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczOTY5MTksImV4cCI6MjA4Mjk3MjkxOX0.rddfbx0API_R62uLWJdM5QCMmqIwc-9b6XpgfNsbsOk';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Tærskelværdier (kan justeres)
+    let thresholds = { low: 3.5, medium: 5.5 };
+    function getRiskLevel(value) {
+        if (value < thresholds.low) return 'high';
+        if (value < thresholds.medium) return 'medium';
+        return 'low';
+    }
+    function riskEmoji(level) {
+        if (level === 'high') return '🔴';
+        if (level === 'medium') return '🟡';
+        return '🟢';
+    }
+
+    // Automatisk flag ved risikoniveauer (seneste checkins)
+    async function loadAutoFlags() {
+        const { data: checkins } = await _supabase
+            .from('CHECKINS_EMPLOYEE')
+            .select('user_id, stressniveau, dato')
+            .order('dato', { ascending: false });
+        if (!checkins) return;
+        // Find seneste checkin pr. user
+        const latest = {};
+        checkins.forEach(c => {
+            if (!latest[c.user_id] || new Date(c.dato) > new Date(latest[c.user_id].dato)) {
+                latest[c.user_id] = c;
             }
         });
+        const rows = Object.values(latest).map(c => {
+            const level = getRiskLevel(c.stressniveau);
+            return `<tr><td>${c.user_id}</td><td>${c.stressniveau}</td><td>${riskEmoji(level)} ${level}</td><td>${c.dato.slice(0,10)}</td></tr>`;
+        });
+        document.getElementById('autoFlags').innerHTML = `<table style="width:100%;max-width:500px;"><tr><th>Medarbejder</th><th>Trivselstal</th><th>Risiko</th><th>Dato</th></tr>${rows.join('')}</table>`;
+    }
+
+    // Aktive advarsler (brugere med high/medium risiko)
+    async function loadAktiveAdvarsler() {
+        const { data: checkins } = await _supabase
+            .from('CHECKINS_EMPLOYEE')
+            .select('user_id, stressniveau, dato')
+            .order('dato', { ascending: false });
+        if (!checkins) return;
+        // Seneste pr. user
+        const latest = {};
+        checkins.forEach(c => {
+            if (!latest[c.user_id] || new Date(c.dato) > new Date(latest[c.user_id].dato)) {
+                latest[c.user_id] = c;
+            }
+        });
+        const alerts = Object.values(latest).filter(c => getRiskLevel(c.stressniveau) !== 'low');
+        if (!alerts.length) {
+            document.getElementById('aktiveAdvarsler').innerHTML = '<em>Ingen aktive advarsler</em>';
+            return;
+        }
+        const rows = alerts.map(c => `<tr><td>${c.user_id}</td><td>${c.stressniveau}</td><td>${riskEmoji(getRiskLevel(c.stressniveau))}</td><td>${c.dato.slice(0,10)}</td></tr>`);
+        document.getElementById('aktiveAdvarsler').innerHTML = `<table style="width:100%;max-width:500px;"><tr><th>Medarbejder</th><th>Trivselstal</th><th>Risiko</th><th>Dato</th></tr>${rows.join('')}</table>`;
+    }
+
+    // Historik over tidligere advarsler (alle tidligere high/medium)
+    async function loadAdvarslerHistorik() {
+        const { data: checkins } = await _supabase
+            .from('CHECKINS_EMPLOYEE')
+            .select('user_id, stressniveau, dato')
+            .order('dato', { ascending: false });
+        if (!checkins) return;
+        const historik = checkins.filter(c => getRiskLevel(c.stressniveau) !== 'low');
+        if (!historik.length) {
+            document.getElementById('advarslerHistorik').innerHTML = '<em>Ingen historiske advarsler</em>';
+            return;
+        }
+        const rows = historik.map(c => `<tr><td>${c.user_id}</td><td>${c.stressniveau}</td><td>${riskEmoji(getRiskLevel(c.stressniveau))}</td><td>${c.dato.slice(0,10)}</td></tr>`);
+        document.getElementById('advarslerHistorik').innerHTML = `<table style="width:100%;max-width:500px;"><tr><th>Medarbejder</th><th>Trivselstal</th><th>Risiko</th><th>Dato</th></tr>${rows.join('')}</table>`;
+    }
+
+    // Tærskeljustering UI
+    function updateThresholdUI() {
+        document.getElementById('lowThreshold').value = thresholds.low;
+        document.getElementById('mediumThreshold').value = thresholds.medium;
+    }
+    document.getElementById('thresholdForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const low = parseFloat(document.getElementById('lowThreshold').value);
+        const med = parseFloat(document.getElementById('mediumThreshold').value);
+        if (!isNaN(low) && !isNaN(med) && low < med) {
+            thresholds.low = low;
+            thresholds.medium = med;
+            loadAll();
+        }
+    });
+
+    function loadAll() {
+        updateThresholdUI();
+        loadAutoFlags();
+        loadAktiveAdvarsler();
+        loadAdvarslerHistorik();
+    }
+
+    // Menu funktionalitet
+    const menuBtn = document.getElementById('menuBtn');
+    const sideMenu = document.getElementById('sideMenu');
+    menuBtn.addEventListener('click', function() {
+        sideMenu.classList.toggle('open');
+    });
+    document.addEventListener('click', function(e) {
+        if (!sideMenu.contains(e.target) && !menuBtn.contains(e.target)) {
+            sideMenu.classList.remove('open');
+        }
+    });
+
+    // Init
+    loadAll();
     </script>
 </body>
 </html>
