@@ -80,7 +80,8 @@
                     pointRadius: 5,
                     pointBackgroundColor: '#2a3a5e',
                     pointBorderColor: '#fff',
-                    pointHoverRadius: 7
+                    pointHoverRadius: 7,
+                    pointHitRadius: 15
                 }]
             },
             options: {
@@ -100,8 +101,8 @@
             data: {
                 labels: trendLabels,
                 datasets: [
-                    { label: 'Periode 1', data: getRandomData(trendLabels.length), borderColor: '#7ed957', backgroundColor: 'rgba(126,217,87,0.08)', tension: 0.3 },
-                    { label: 'Periode 2', data: getRandomData(trendLabels.length), borderColor: '#ff7f7f', backgroundColor: 'rgba(255,127,127,0.08)', tension: 0.3 }
+                    { label: 'Periode 1', data: getRandomData(trendLabels.length), borderColor: '#7ed957', backgroundColor: 'rgba(126,217,87,0.08)', tension: 0.3, pointHitRadius: 15 },
+                    { label: 'Periode 2', data: getRandomData(trendLabels.length), borderColor: '#ff7f7f', backgroundColor: 'rgba(255,127,127,0.08)', tension: 0.3, pointHitRadius: 15 }
                 ]
             },
             options: {
