@@ -61,61 +61,139 @@
             });
         });
 
-        // Dummy data til graf over tid
-        const trendLabels = ['Uge 1', 'Uge 2', 'Uge 3', 'Uge 4', 'Uge 5', 'Uge 6', 'Uge 7', 'Uge 8'];
-        const trendData = [5.2, 5.5, 6.1, 5.8, 5.0, 4.7, 5.3, 5.9];
-        new Chart(document.getElementById('trendChart').getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: trendLabels,
-                datasets: [{
-                    label: 'Stressniveau',
-                    data: trendData,
-                    borderColor: '#2a3a5e',
-                    backgroundColor: 'rgba(42,58,94,0.08)',
-                    tension: 0.3,
-                    pointRadius: 5,
-                    pointBackgroundColor: '#2a3a5e',
-                    pointBorderColor: '#fff',
-                    pointHoverRadius: 7
-                }]
-            },
-            options: {
-                scales: {
-                    y: { min: 0, max: 10, title: { display: true, text: 'Stressniveau' } }
-                },
-                plugins: { legend: { display: false } }
-            }
-        });
+        // Hent rigtige data fra Supabase
+        const SUPABASE_URL = 'https://rwksvrxfsjfdikckwmzq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3a3N2cnhmc2pmZGlrY2t3bXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczOTY5MTksImV4cCI6MjA4Mjk3MjkxOX0.rddfbx0API_R62uLWJdM5QCMmqIwc-9b6XpgfNsbsOk';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Dummy data til periodesammenligning
-        function getRandomData(len) {
-            return Array.from({length: len}, () => (Math.random() * 4 + 4).toFixed(1));
-        }
-        const compareChart = new Chart(document.getElementById('compareChart').getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: trendLabels,
-                datasets: [
-                    { label: 'Periode 1', data: getRandomData(trendLabels.length), borderColor: '#7ed957', backgroundColor: 'rgba(126,217,87,0.08)', tension: 0.3 },
-                    { label: 'Periode 2', data: getRandomData(trendLabels.length), borderColor: '#ff7f7f', backgroundColor: 'rgba(255,127,127,0.08)', tension: 0.3 }
-                ]
-            },
-            options: {
-                scales: {
-                    y: { min: 0, max: 10, title: { display: true, text: 'Stressniveau' } }
-                },
-                plugins: { legend: { display: true, position: 'bottom' } }
+        let allData = [];
+        async function loadData() {
+            const { data, error } = await _supabase
+                .from('CHECKINS_EMPLOYEE')
+                .select('stressniveau, dato');
+            if (error) {
+                alert('Fejl ved hentning af data: ' + error.message);
+                return;
             }
-        });
+            allData = data.map(d => ({
+                stressniveau: d.stressniveau,
+                dato: d.dato.slice(0, 10)
+            }));
+            renderTrendChart();
+            renderCompareChart();
+        }
+
+        function getDaysArray(start, end) {
+            const arr = [];
+            let dt = new Date(start);
+            while (dt <= end) {
+                arr.push(dt.toISOString().slice(0, 10));
+                dt.setDate(dt.getDate() + 1);
+            }
+            return arr;
+        }
+
+        function renderTrendChart() {
+            // Udvikling over tid (sidste 8 uger)
+            const today = new Date();
+            const weeks = 8;
+            const weekLabels = [];
+            const weekAverages = [];
+            for (let i = weeks - 1; i >= 0; i--) {
+                const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() - i * 7 + 1);
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                const label = `Uge ${weeks - i}`;
+                weekLabels.push(label);
+                const weekData = allData.filter(d => {
+                    const dDate = new Date(d.dato);
+                    return dDate >= weekStart && dDate <= weekEnd;
+                });
+                const avg = weekData.length > 0 ? weekData.reduce((sum, d) => sum + d.stressniveau, 0) / weekData.length : null;
+                weekAverages.push(avg);
+            }
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            if (window.trendChartObj) window.trendChartObj.destroy();
+            window.trendChartObj = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: weekLabels,
+                    datasets: [{
+                        label: 'Stressniveau',
+                        data: weekAverages,
+                        borderColor: '#2a3a5e',
+                        backgroundColor: 'rgba(42,58,94,0.08)',
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#2a3a5e',
+                        pointBorderColor: '#fff',
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { min: 0, max: 10, title: { display: true, text: 'Stressniveau' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderCompareChart(period1, period2) {
+            // Hvis ingen perioder valgt, vis tom graf
+            const ctx = document.getElementById('compareChart').getContext('2d');
+            let labels = [];
+            let data1 = [];
+            let data2 = [];
+            if (period1 && period2) {
+                // Find alle datoer i begge perioder
+                const days1 = getDaysArray(new Date(period1.start), new Date(period1.end));
+                const days2 = getDaysArray(new Date(period2.start), new Date(period2.end));
+                labels = days1.length > days2.length ? days1 : days2;
+                // Periode 1 data
+                data1 = labels.map(date => {
+                    const found = allData.filter(d => d.dato === date && new Date(date) >= new Date(period1.start) && new Date(date) <= new Date(period1.end));
+                    return found.length > 0 ? found.reduce((sum, d) => sum + d.stressniveau, 0) / found.length : null;
+                });
+                // Periode 2 data
+                data2 = labels.map(date => {
+                    const found = allData.filter(d => d.dato === date && new Date(date) >= new Date(period2.start) && new Date(date) <= new Date(period2.end));
+                    return found.length > 0 ? found.reduce((sum, d) => sum + d.stressniveau, 0) / found.length : null;
+                });
+            }
+            if (window.compareChartObj) window.compareChartObj.destroy();
+            window.compareChartObj = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Periode 1', data: data1, borderColor: '#7ed957', backgroundColor: 'rgba(126,217,87,0.08)', tension: 0.3 },
+                        { label: 'Periode 2', data: data2, borderColor: '#ff7f7f', backgroundColor: 'rgba(255,127,127,0.08)', tension: 0.3 }
+                    ]
+                },
+                options: {
+                    scales: {
+                        y: { min: 0, max: 10, title: { display: true, text: 'Stressniveau' } }
+                    },
+                    plugins: { legend: { display: true, position: 'bottom' } }
+                }
+            });
+        }
+
         document.getElementById('compareForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            console.log('Sammenlign-knap trykket');
-            // Test: Sæt tydelige værdier så grafen ændrer sig
-            compareChart.data.datasets[0].data = [1,2,3,4,5,6,7,8];
-            compareChart.data.datasets[1].data = [8,7,6,5,4,3,2,1];
-            compareChart.update();
+            const start1 = document.getElementById('start1').value;
+            const end1 = document.getElementById('end1').value;
+            const start2 = document.getElementById('start2').value;
+            const end2 = document.getElementById('end2').value;
+            if (!start1 || !end1 || !start2 || !end2) {
+                alert('Vælg begge perioder!');
+                return;
+            }
+            renderCompareChart({ start: start1, end: end1 }, { start: start2, end: end2 });
         });
+
+        loadData();
     </script>
 </body>
 </html>
