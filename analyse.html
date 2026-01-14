@@ -95,6 +95,18 @@
         }
 
         function renderTrendChart() {
+                                    console.log('TrendChart labels (days):', days);
+                                    console.log('TrendChart values:', values);
+                                    // Hvis alle værdier er null, vis besked på grafen
+                                    if (values.every(v => v === null)) {
+                                        const ctx = document.getElementById('trendChart').getContext('2d');
+                                        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                                        ctx.font = '20px Arial';
+                                        ctx.fillStyle = '#888';
+                                        ctx.textAlign = 'center';
+                                        ctx.fillText('Ingen data tilgængelig for de seneste 7 dage', ctx.canvas.width/2, ctx.canvas.height/2);
+                                        return;
+                                    }
                         console.log('allData:', allData);
             // Udvikling over tid (seneste 7 dage)
             const today = new Date();
