@@ -8,8 +8,6 @@
     <style>
         .chart-section canvas {
             max-width: 1000px;
-            min-height: 280px;
-            height: 340px !important;
             margin: 0 auto 18px auto;
             display: block;
         }
@@ -30,7 +28,7 @@
         <h1>Analyse</h1>
         <section class="chart-section" style="margin-bottom: 36px;">
             <h2>Udvikling over tid</h2>
-            <canvas id="trendChart"></canvas>
+            <canvas id="trendChart" width="1000" height="340"></canvas>
         </section>
         <section class="chart-section">
             <h2>Periodesammenligning</h2>
@@ -39,7 +37,7 @@
                 <label style="margin-left: 24px;">Periode 2: <input type="date" id="start2"> til <input type="date" id="end2"></label>
                 <button type="submit">Sammenlign</button>
             </form>
-            <canvas id="compareChart"></canvas>
+            <canvas id="compareChart" width="1000" height="340"></canvas>
         </section>
     </div>
     <script>
