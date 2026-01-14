@@ -42,6 +42,7 @@
             <section class="section">
                 <h2>Aggregerede data pr. team</h2>
                 <div id="teamData"></div>
+                <button id="refreshTeamData" style="margin-top:10px;">Opdater data</button>
             </section>
             <section class="section">
                 <h2>Sammenlign teams</h2>
@@ -54,6 +55,63 @@
             </section>
     </div>
     <script>
+                        // Hent og vis aggregerede data pr. team
+                        async function loadTeamAggregates() {
+                            const { data: teams } = await _supabase.from('TEAMS').select('*');
+                            const teamDataDiv = document.getElementById('teamData');
+                            teamDataDiv.innerHTML = '';
+                            if (teams && teams.length) {
+                                for (const team of teams) {
+                                    // Hent alle medlemmer
+                                    const { data: members } = await _supabase.from('TEAM_MEMBERS').select('navn').eq('team_id', team.id);
+                                    if (!members || !members.length) continue;
+                                    // Hent alle check-ins for medlemmer
+                                    const memberNames = members.map(m => m.navn);
+                                    if (!memberNames.length) continue;
+                                    const { data: checkins } = await _supabase
+                                        .from('CHECKINS_EMPLOYEE')
+                                        .select('stressniveau, user_id, dato')
+                                        .in('user_id', memberNames);
+                                    // Beregn gennemsnit
+                                    const stressValues = checkins ? checkins.map(c => c.stressniveau).filter(v => typeof v === 'number') : [];
+                                    const avg = stressValues.length ? (stressValues.reduce((a, b) => a + b, 0) / stressValues.length).toFixed(2) : 'Ingen data';
+                                    // Udvikling over tid (seneste 7 dage)
+                                    const today = new Date();
+                                    const days = [];
+                                    const values = [];
+                                    for (let i = 0; i < 7; i++) {
+                                        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6 + i);
+                                        const dStr = d.toISOString().slice(0, 10);
+                                        days.push(dStr);
+                                        const dayCheckins = checkins ? checkins.filter(c => c.dato && c.dato.slice(0, 10) === dStr) : [];
+                                        const dayAvg = dayCheckins.length ? (dayCheckins.reduce((sum, c) => sum + c.stressniveau, 0) / dayCheckins.length).toFixed(2) : null;
+                                        values.push(dayAvg);
+                                    }
+                                    // Stabilitet: beregn standardafvigelse
+                                    let stability = 'Ingen data';
+                                    if (stressValues.length > 1) {
+                                        const mean = stressValues.reduce((a, b) => a + b, 0) / stressValues.length;
+                                        const variance = stressValues.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (stressValues.length - 1);
+                                        stability = Math.sqrt(variance).toFixed(2);
+                                    }
+                                    // Vis kun aggregerede tal
+                                    const teamDiv = document.createElement('div');
+                                    teamDiv.style.marginBottom = '18px';
+                                    teamDiv.innerHTML = `<strong>${team.navn} (${team.gruppe || 'Uden gruppe'})</strong><br>
+                                        Gennemsnitligt trivselstal: <b>${avg}</b><br>
+                                        Stabilitet (standardafvigelse): <b>${stability}</b><br>
+                                        Udvikling over tid (seneste 7 dage): <br>
+                                        <span style='font-size:0.95em;'>${days.map((d, i) => `${d}: ${values[i] ?? '-'}`).join('<br>')}</span>`;
+                                    teamDataDiv.appendChild(teamDiv);
+                                }
+                            } else {
+                                teamDataDiv.innerHTML = '<em>Ingen teams oprettet</em>';
+                            }
+                        }
+
+                        document.getElementById('refreshTeamData').addEventListener('click', loadTeamAggregates);
+                        // Auto-load ved start
+                        loadTeamAggregates();
                 // Supabase setup
                 const SUPABASE_URL = 'https://rwksvrxfsjfdikckwmzq.supabase.co';
                 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3a3N2cnhmc2pmZGlrY2t3bXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczOTY5MTksImV4cCI6MjA4Mjk3MjkxOX0.rddfbx0API_R62uLWJdM5QCMmqIwc-9b6XpgfNsbsOk';
