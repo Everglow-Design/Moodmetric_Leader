@@ -121,10 +121,10 @@
                 // Load teams and members
                 async function loadTeams() {
                     const { data: teams } = await _supabase.from('TEAMS').select('*').order('id');
-                    const teamList = document.getElementById('teamList');
-                    const teamSelect = document.getElementById('teamSelect');
-                    const compareTeam1 = document.getElementById('compareTeam1');
-                    const compareTeam2 = document.getElementById('compareTeam2');
+                        const teamList = document.getElementById('teamList'); 
+                        const teamSelect = document.getElementById('teamSelect'); 
+                        const compareTeam1 = document.getElementById('compareTeam1'); 
+                        const compareTeam2 = document.getElementById('compareTeam2'); 
                     teamList.innerHTML = '';
                     teamSelect.innerHTML = '';
                     compareTeam1.innerHTML = '';
@@ -161,6 +161,80 @@
                     loadTeamMembers();
                 }
 
+                e.preventDefault();
+                const id1 = document.getElementById('compareTeam1').value;
+                const id2 = document.getElementById('compareTeam2').value;
+                if (!id1 || !id2 || id1 === id2) {
+                    document.getElementById('compareResult').innerHTML = '<em>Vælg to forskellige teams</em>';
+                    return;
+                }
+                // Hent teams
+                const { data: teams } = await _supabase.from('TEAMS').select('*').in('id', [id1, id2]);
+                // Hent medlemmer
+                const teamMembers = {};
+                for (const team of teams) {
+                    const { data: members } = await _supabase.from('TEAM_MEMBERS').select('navn').eq('team_id', team.id);
+                    teamMembers[team.id] = members ? members.map(m => m.navn) : [];
+                }
+                // Hent check-ins og beregn nøgletal
+                const teamStats = [];
+                for (const team of teams) {
+                    const memberNames = teamMembers[team.id];
+                    let avg = 'Ingen data', stability = 'Ingen data', trend = 'Ingen data', status = '⚪';
+                    if (memberNames.length) {
+                        const { data: checkins } = await _supabase
+                            .from('CHECKINS_EMPLOYEE')
+                            .select('stressniveau, user_id, dato')
+                            .in('user_id', memberNames);
+                        const stressValues = checkins ? checkins.map(c => c.stressniveau).filter(v => typeof v === 'number') : [];
+                        if (stressValues.length) {
+                            const mean = stressValues.reduce((a, b) => a + b, 0) / stressValues.length;
+                            avg = mean.toFixed(2);
+                            // Status emoji
+                            status = mean < 3.5 ? '🔴' : mean < 5.5 ? '🟡' : '🟢';
+                            // Stabilitet
+                            if (stressValues.length > 1) {
+                                const variance = stressValues.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (stressValues.length - 1);
+                                stability = Math.sqrt(variance).toFixed(2);
+                            }
+                            // Trend (seneste 7 dage)
+                            const today = new Date();
+                            const days = [];
+                            const values = [];
+                            for (let i = 0; i < 7; i++) {
+                                const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6 + i);
+                                const dStr = d.toISOString().slice(0, 10);
+                                days.push(dStr);
+                                const dayCheckins = checkins ? checkins.filter(c => c.dato && c.dato.slice(0, 10) === dStr) : [];
+                                const dayAvg = dayCheckins.length ? (dayCheckins.reduce((sum, c) => sum + c.stressniveau, 0) / dayCheckins.length) : null;
+                                values.push(dayAvg);
+                            }
+                            // Trend tekst
+                            const validValues = values.filter(v => v !== null);
+                            if (validValues.length > 2) {
+                                const first = validValues[0];
+                                const last = validValues[validValues.length - 1];
+                                if (last > first) trend = 'Stigende';
+                                else if (last < first) trend = 'Faldende';
+                                else trend = 'Stabil';
+                            }
+                        }
+                    }
+                    teamStats.push({
+                        navn: team.navn,
+                        status,
+                        avg,
+                        trend,
+                        stability
+                    });
+                }
+                // Vis sammenligning
+                document.getElementById('compareResult').innerHTML = `
+                    <table style="width:100%;max-width:500px;border-collapse:collapse;margin-top:12px;">
+                      <tr style="background:#f4f6fb;"><th>Team</th><th>Status</th><th>Niveau</th><th>Trend</th><th>Stabilitet</th></tr>
+                      ${teamStats.map(t => `<tr><td>${t.navn}</td><td style='font-size:1.3em;'>${t.status}</td><td>${t.avg}</td><td>${t.trend}</td><td>${t.stability}</td></tr>`).join('')}
+                    </table>
+                `;
                 // Opret team
                 document.getElementById('createTeamForm').addEventListener('submit', async function(e) {
                     e.preventDefault();
