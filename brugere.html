@@ -19,6 +19,13 @@
         </nav>
         <h1>Bruger- & Adgangsstyring</h1>
         <section class="section">
+                    <section class="section">
+                        <h2>Opret ny gruppe/team</h2>
+                        <form id="createTeamForm" style="margin-bottom: 18px;">
+                            <input type="text" id="teamName" placeholder="Teamnavn" required style="padding: 6px;">
+                            <button type="submit">Opret gruppe/team</button>
+                        </form>
+                        <div id="teamCreateResult"></div>
             <h2>Opret medarbejder-login</h2>
             <form id="createUserForm" style="margin-bottom: 18px;">
                 <label for="userTeam">Vælg gruppe/team:</label>
@@ -125,11 +132,10 @@
         const teamMap = {};
         teams.forEach(t => teamMap[t.id] = t.navn);
         // Vis alle brugere, uanset rolle
-        let html = `<div style="max-height:340px;overflow-y:auto;"><table style="width:100%;max-width:700px;"><tr><th>Navn</th><th>Nummer</th><th>Rolle</th><th>Team</th><th>Status</th><th>Midlertidig kode</th><th>Handling</th></tr>`;
-        users.slice(0,4).forEach(u => {
+        let html = `<div style="max-height:340px;overflow-y:auto;"><table style="width:100%;max-width:700px;"><tr><th>Brugernavn</th><th>Rolle</th><th>Team</th><th>Status</th><th>Midlertidig kode</th><th>Handling</th></tr>`;
+        users.forEach(u => {
             html += `<tr>
-                <td>${u.navn}</td>
-                <td>${u.medarbejdernummer || ''}</td>
+                <td>${u.brugernavn || '-'}</td>
                 <td>
                     <select onchange="window.updateRole('${u.id}', this.value)">
                         <option value="medarbejder"${u.rolle==='medarbejder'?' selected':''}>Medarbejder</option>
@@ -146,11 +152,35 @@
                 <td>${u.temp_password || '-'}</td>
                 <td>
                     <button onclick="window.toggleActive('${u.id}', ${!u.aktiv})">${u.aktiv ? 'Deaktivér' : 'Aktivér'}</button>
+                    <button onclick="window.deleteUser('${u.id}')" style="color:red;">Slet</button>
                 </td>
             </tr>`;
         });
         html += '</table></div>';
         document.getElementById('userTable').innerHTML = html;
+        // Opret ny gruppe/team
+        document.getElementById('createTeamForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('teamName').value.trim();
+            if (!name) return;
+            const { error } = await _supabase.from('TEAMS').insert({ navn: name });
+            if (error) {
+                document.getElementById('teamCreateResult').textContent = 'Fejl: ' + error.message;
+            } else {
+                document.getElementById('teamCreateResult').textContent = 'Gruppe/team oprettet!';
+                document.getElementById('teamName').value = '';
+                loadTeamsDropdown();
+            }
+        });
+
+        // Slet bruger
+        window.deleteUser = async function(id) {
+            if (!confirm('Er du sikker på, at du vil slette denne bruger?')) return;
+            // Slet fra auth og fra PROFILES_EMPLOYEE
+            await _supabase.from('PROFILES_EMPLOYEE').delete().eq('id', id);
+            // Bemærk: Sletning fra auth kræver service role key og bør gøres via backend for fuld sikkerhed
+            loadUsers();
+        }
     }
 
     // Globale window-funktioner til inline events
