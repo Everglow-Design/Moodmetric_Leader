@@ -21,14 +21,11 @@
         <section class="section">
             <h2>Opret medarbejder-login</h2>
             <form id="createUserForm" style="margin-bottom: 18px;">
-                <input type="email" id="userEmail" placeholder="E-mail" required style="padding: 6px;">
-                <input type="text" id="userName" placeholder="Navn" required style="padding: 6px;">
-                <input type="text" id="userNum" placeholder="Medarbejdernummer" required style="padding: 6px;">
-                <select id="userRole">
-                    <option value="medarbejder">Medarbejder</option>
-                    <option value="teamleder">Teamleder</option>
-                </select>
-                <button type="submit">Opret bruger</button>
+                <label for="userTeam">Vælg gruppe/team:</label>
+                <select id="userTeam" required style="padding: 6px;"></select>
+                <label for="userCount">Antal medarbejdere:</label>
+                <input type="number" id="userCount" min="1" max="100" value="1" required style="padding: 6px; width: 60px;">
+                <button type="submit">Opret brugere</button>
             </form>
             <div id="inviteResult"></div>
         </section>
@@ -44,55 +41,73 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3a3N2cnhmc2pmZGlrY2t3bXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczOTY5MTksImV4cCI6MjA4Mjk3MjkxOX0.rddfbx0API_R62uLWJdM5QCMmqIwc-9b6XpgfNsbsOk';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Opret bruger og inviter via mail
+    // Hent teams til dropdown
+    async function loadTeamsDropdown() {
+        const { data: teams } = await _supabase.from('TEAMS').select('id, navn');
+        const select = document.getElementById('userTeam');
+        select.innerHTML = '';
+        if (teams && teams.length) {
+            teams.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = t.navn;
+                select.appendChild(opt);
+            });
+        }
+    }
+    document.addEventListener('DOMContentLoaded', loadTeamsDropdown);
+
+    // Generér brugernavn og password
+    function generateUsername(teamName, idx) {
+        // Simpelt brugernavn: teamnavn + løbenummer
+        return (
+            teamName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().substring(0,8) + (100+idx)
+        );
+    }
+    function generatePassword() {
+        return Math.random().toString(36).slice(-8) + Math.floor(100+Math.random()*900);
+    }
+
+    // Opret flere brugere med autogenereret brugernavn/password
     document.getElementById('createUserForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        const email = document.getElementById('userEmail').value.trim();
-        const navn = document.getElementById('userName').value.trim();
-        const nummer = document.getElementById('userNum').value.trim();
-        const rolle = document.getElementById('userRole').value;
-        if (!email || !navn || !nummer) return;
-        // Generér midlertidigt kodeord
-        function generateTempPassword() {
-            return 'Temp' + Math.floor(100000 + Math.random() * 900000);
-        }
-        const tempPassword = generateTempPassword();
-        // Opret bruger i auth (signUp)
-        let { data, error } = await _supabase.auth.signUp({
-            email,
-            password: tempPassword,
-            options: {
-                data: { navn, rolle }
-            }
-        });
-        if (error) {
-            document.getElementById('inviteResult').textContent = 'Fejl: ' + error.message;
-            return;
-        }
-        // Opret profil i PROFILES_EMPLOYEE
-        const userId = data.user?.id || data.user?.user?.id;
-        if (userId) {
-            await _supabase.from('PROFILES_EMPLOYEE').insert({
-                id: userId,
-                navn,
-                medarbejdernummer: nummer,
-                rolle,
-                aktiv: true,
-                temp_password: tempPassword
+        const teamId = document.getElementById('userTeam').value;
+        const antal = parseInt(document.getElementById('userCount').value, 10);
+        if (!teamId || !antal || antal < 1) return;
+        // Hent teamnavn
+        const { data: team } = await _supabase.from('TEAMS').select('navn').eq('id', teamId).single();
+        if (!team) return;
+        let resultList = '<strong>Oprettede brugere:</strong><br><table><tr><th>Brugernavn</th><th>Password</th></tr>';
+        for (let i = 0; i < antal; i++) {
+            const username = generateUsername(team.navn, i);
+            const password = generatePassword();
+            // Opret bruger i auth (kun brugernavn og password)
+            let { data, error } = await _supabase.auth.signUp({
+                email: username + '@noemail.local', // dummy email, da supabase kræver email
+                password: password,
+                options: {
+                    data: { brugernavn: username, team_id: teamId, rolle: 'medarbejder' }
+                }
             });
-            // Hvis rolle er 'teamleder', opret også i ledelse_users
-            if (rolle === 'teamleder') {
-                await _supabase.from('ledelse_users').insert({
-                    email,
-                    navn,
-                    rolle,
+            if (error) {
+                resultList += `<tr><td colspan="2">Fejl for ${username}: ${error.message}</td></tr>`;
+                continue;
+            }
+            const userId = data.user?.id || data.user?.user?.id;
+            if (userId) {
+                await _supabase.from('PROFILES_EMPLOYEE').insert({
+                    id: userId,
+                    brugernavn: username,
+                    team_id: teamId,
+                    rolle: 'medarbejder',
                     aktiv: true,
-                    medarbejdernummer: nummer,
-                    temp_password: tempPassword
+                    temp_password: password
                 });
             }
+            resultList += `<tr><td>${username}</td><td>${password}</td></tr>`;
         }
-        document.getElementById('inviteResult').textContent = 'Bruger oprettet: ' + email + '. Midlertidig kode: ' + tempPassword;
+        resultList += '</table>';
+        document.getElementById('inviteResult').innerHTML = resultList;
         document.getElementById('createUserForm').reset();
         loadUsers();
     });
