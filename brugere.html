@@ -18,21 +18,131 @@
             <a href="index.html">Log ud</a>
         </nav>
         <h1>Bruger- & Adgangsstyring</h1>
-        <p>Opret medarbejder-login, aktivér/deaktivér, roller.</p>
-        <div id="brugere-indhold">Her kan du styre brugere og adgang.</div>
+        <section class="section">
+            <h2>Opret medarbejder-login</h2>
+            <form id="createUserForm" style="margin-bottom: 18px;">
+                <input type="email" id="userEmail" placeholder="E-mail" required style="padding: 6px;">
+                <input type="text" id="userName" placeholder="Navn" required style="padding: 6px;">
+                <input type="text" id="userNum" placeholder="Medarbejdernummer" required style="padding: 6px;">
+                <select id="userRole">
+                    <option value="medarbejder">Medarbejder</option>
+                    <option value="teamleder">Teamleder</option>
+                </select>
+                <button type="submit">Opret og inviter</button>
+            </form>
+            <div id="inviteResult"></div>
+        </section>
+        <section class="section">
+            <h2>Brugere</h2>
+            <div id="userTable"></div>
+        </section>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <script>
-        // Menu funktionalitet
-        const menuBtn = document.getElementById('menuBtn');
-        const sideMenu = document.getElementById('sideMenu');
-        menuBtn.addEventListener('click', function() {
-            sideMenu.classList.toggle('open');
+    // Supabase setup
+    const SUPABASE_URL = 'https://rwksvrxfsjfdikckwmzq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3a3N2cnhmc2pmZGlrY2t3bXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczOTY5MTksImV4cCI6MjA4Mjk3MjkxOX0.rddfbx0API_R62uLWJdM5QCMmqIwc-9b6XpgfNsbsOk';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Opret bruger og inviter via mail
+    document.getElementById('createUserForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const email = document.getElementById('userEmail').value.trim();
+        const navn = document.getElementById('userName').value.trim();
+        const nummer = document.getElementById('userNum').value.trim();
+        const rolle = document.getElementById('userRole').value;
+        if (!email || !navn || !nummer) return;
+        // Opret bruger i auth og send invite
+        let { data, error } = await _supabase.auth.admin.createUser({
+            email,
+            email_confirm: false,
+            user_metadata: { navn, rolle }
         });
-        document.addEventListener('click', function(e) {
-            if (!sideMenu.contains(e.target) && !menuBtn.contains(e.target)) {
-                sideMenu.classList.remove('open');
-            }
+        if (error) {
+            document.getElementById('inviteResult').textContent = 'Fejl: ' + error.message;
+            return;
+        }
+        // Opret profil i PROFILES_EMPLOYEE
+        const userId = data.user.id;
+        await _supabase.from('PROFILES_EMPLOYEE').insert({
+            id: userId,
+            navn,
+            medarbejdernummer: nummer,
+            rolle,
+            aktiv: true
         });
+        document.getElementById('inviteResult').textContent = 'Bruger inviteret: ' + email;
+        document.getElementById('createUserForm').reset();
+        loadUsers();
+    });
+
+    // Hent teams til flytning
+    async function getTeams() {
+        const { data } = await _supabase.from('TEAMS').select('id, navn');
+        return data || [];
+    }
+
+    // Hent og vis brugere
+    async function loadUsers() {
+        const { data: users } = await _supabase.from('PROFILES_EMPLOYEE').select('*');
+        const teams = await getTeams();
+        const teamMap = {};
+        teams.forEach(t => teamMap[t.id] = t.navn);
+        let html = `<table style="width:100%;max-width:700px;"><tr><th>Navn</th><th>Nummer</th><th>Rolle</th><th>Team</th><th>Status</th><th>Handling</th></tr>`;
+        users.forEach(u => {
+            html += `<tr>
+                <td>${u.navn}</td>
+                <td>${u.medarbejdernummer || ''}</td>
+                <td>
+                    <select onchange="window.updateRole('${u.id}', this.value)">
+                        <option value="medarbejder"${u.rolle==='medarbejder'?' selected':''}>Medarbejder</option>
+                        <option value="teamleder"${u.rolle==='teamleder'?' selected':''}>Teamleder</option>
+                    </select>
+                </td>
+                <td>
+                    <select onchange="window.moveUser('${u.id}', this.value)">
+                        <option value="">Ingen</option>
+                        ${teams.map(t => `<option value="${t.id}"${u.team_id===t.id?' selected':''}>${t.navn}</option>`).join('')}
+                    </select>
+                </td>
+                <td>${u.aktiv ? 'Aktiv' : 'Inaktiv'}</td>
+                <td>
+                    <button onclick="window.toggleActive('${u.id}', ${!u.aktiv})">${u.aktiv ? 'Deaktivér' : 'Aktivér'}</button>
+                </td>
+            </tr>`;
+        });
+        html += '</table>';
+        document.getElementById('userTable').innerHTML = html;
+    }
+
+    // Globale window-funktioner til inline events
+    window.updateRole = async function(id, rolle) {
+        await _supabase.from('PROFILES_EMPLOYEE').update({ rolle }).eq('id', id);
+        loadUsers();
+    }
+    window.moveUser = async function(id, team_id) {
+        await _supabase.from('PROFILES_EMPLOYEE').update({ team_id: team_id || null }).eq('id', id);
+        loadUsers();
+    }
+    window.toggleActive = async function(id, aktiv) {
+        await _supabase.from('PROFILES_EMPLOYEE').update({ aktiv }).eq('id', id);
+        loadUsers();
+    }
+
+    // Menu funktionalitet
+    const menuBtn = document.getElementById('menuBtn');
+    const sideMenu = document.getElementById('sideMenu');
+    menuBtn.addEventListener('click', function() {
+        sideMenu.classList.toggle('open');
+    });
+    document.addEventListener('click', function(e) {
+        if (!sideMenu.contains(e.target) && !menuBtn.contains(e.target)) {
+            sideMenu.classList.remove('open');
+        }
+    });
+
+    // Init
+    loadUsers();
     </script>
 </body>
 </html>
