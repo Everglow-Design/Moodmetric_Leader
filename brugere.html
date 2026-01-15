@@ -80,6 +80,17 @@
                 aktiv: true,
                 temp_password: tempPassword
             });
+            // Hvis rolle er 'teamleder', opret også i ledelse_users
+            if (rolle === 'teamleder') {
+                await _supabase.from('ledelse_users').insert({
+                    email,
+                    navn,
+                    rolle,
+                    aktiv: true,
+                    medarbejdernummer: nummer,
+                    temp_password: tempPassword
+                });
+            }
         }
         document.getElementById('inviteResult').textContent = 'Bruger oprettet: ' + email + '. Midlertidig kode: ' + tempPassword;
         document.getElementById('createUserForm').reset();
