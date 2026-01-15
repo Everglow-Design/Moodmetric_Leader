@@ -98,8 +98,8 @@
         const teams = await getTeams();
         const teamMap = {};
         teams.forEach(t => teamMap[t.id] = t.navn);
-        let html = `<table style="width:100%;max-width:700px;"><tr><th>Navn</th><th>Nummer</th><th>Rolle</th><th>Team</th><th>Status</th><th>Handling</th></tr>`;
-        users.forEach(u => {
+        let html = `<div style="max-height:340px;overflow-y:auto;"><table style="width:100%;max-width:700px;"><tr><th>Navn</th><th>Nummer</th><th>Rolle</th><th>Team</th><th>Status</th><th>Midlertidig kode</th><th>Handling</th></tr>`;
+        users.slice(0,4).forEach(u => {
             html += `<tr>
                 <td>${u.navn}</td>
                 <td>${u.medarbejdernummer || ''}</td>
@@ -116,12 +116,13 @@
                     </select>
                 </td>
                 <td>${u.aktiv ? 'Aktiv' : 'Inaktiv'}</td>
+                <td>${u.temp_password || '-'}</td>
                 <td>
                     <button onclick="window.toggleActive('${u.id}', ${!u.aktiv})">${u.aktiv ? 'Deaktivér' : 'Aktivér'}</button>
                 </td>
             </tr>`;
         });
-        html += '</table>';
+        html += '</table></div>';
         document.getElementById('userTable').innerHTML = html;
     }
 
