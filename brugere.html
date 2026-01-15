@@ -22,7 +22,6 @@
             <h2>Opret medarbejder-login</h2>
             <form id="createUserForm" style="margin-bottom: 18px;">
                 <input type="email" id="userEmail" placeholder="E-mail" required style="padding: 6px;">
-                <input type="password" id="userPassword" placeholder="Kodeord" required style="padding: 6px;">
                 <input type="text" id="userName" placeholder="Navn" required style="padding: 6px;">
                 <input type="text" id="userNum" placeholder="Medarbejdernummer" required style="padding: 6px;">
                 <select id="userRole">
@@ -49,15 +48,19 @@
     document.getElementById('createUserForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const email = document.getElementById('userEmail').value.trim();
-        const password = document.getElementById('userPassword').value;
         const navn = document.getElementById('userName').value.trim();
         const nummer = document.getElementById('userNum').value.trim();
         const rolle = document.getElementById('userRole').value;
-        if (!email || !password || !navn || !nummer) return;
+        if (!email || !navn || !nummer) return;
+        // Generér midlertidigt kodeord
+        function generateTempPassword() {
+            return 'Temp' + Math.floor(100000 + Math.random() * 900000);
+        }
+        const tempPassword = generateTempPassword();
         // Opret bruger i auth (signUp)
         let { data, error } = await _supabase.auth.signUp({
             email,
-            password,
+            password: tempPassword,
             options: {
                 data: { navn, rolle }
             }
@@ -74,10 +77,11 @@
                 navn,
                 medarbejdernummer: nummer,
                 rolle,
-                aktiv: true
+                aktiv: true,
+                temp_password: tempPassword
             });
         }
-        document.getElementById('inviteResult').textContent = 'Bruger oprettet: ' + email;
+        document.getElementById('inviteResult').textContent = 'Bruger oprettet: ' + email + '. Midlertidig kode: ' + tempPassword;
         document.getElementById('createUserForm').reset();
         loadUsers();
     });
