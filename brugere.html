@@ -98,10 +98,9 @@
         const teams = await getTeams();
         const teamMap = {};
         teams.forEach(t => teamMap[t.id] = t.navn);
-        // Sorter så både medarbejdere og teamledere vises
-        const visBrugere = users.filter(u => u.rolle === 'medarbejder' || u.rolle === 'teamleder');
+        // Vis alle brugere, uanset rolle
         let html = `<div style="max-height:340px;overflow-y:auto;"><table style="width:100%;max-width:700px;"><tr><th>Navn</th><th>Nummer</th><th>Rolle</th><th>Team</th><th>Status</th><th>Midlertidig kode</th><th>Handling</th></tr>`;
-        visBrugere.slice(0,4).forEach(u => {
+        users.slice(0,4).forEach(u => {
             html += `<tr>
                 <td>${u.navn}</td>
                 <td>${u.medarbejdernummer || ''}</td>
