@@ -22,13 +22,14 @@
             <h2>Opret medarbejder-login</h2>
             <form id="createUserForm" style="margin-bottom: 18px;">
                 <input type="email" id="userEmail" placeholder="E-mail" required style="padding: 6px;">
+                <input type="password" id="userPassword" placeholder="Kodeord" required style="padding: 6px;">
                 <input type="text" id="userName" placeholder="Navn" required style="padding: 6px;">
                 <input type="text" id="userNum" placeholder="Medarbejdernummer" required style="padding: 6px;">
                 <select id="userRole">
                     <option value="medarbejder">Medarbejder</option>
                     <option value="teamleder">Teamleder</option>
                 </select>
-                <button type="submit">Opret og inviter</button>
+                <button type="submit">Opret bruger</button>
             </form>
             <div id="inviteResult"></div>
         </section>
@@ -48,30 +49,35 @@
     document.getElementById('createUserForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const email = document.getElementById('userEmail').value.trim();
+        const password = document.getElementById('userPassword').value;
         const navn = document.getElementById('userName').value.trim();
         const nummer = document.getElementById('userNum').value.trim();
         const rolle = document.getElementById('userRole').value;
-        if (!email || !navn || !nummer) return;
-        // Opret bruger i auth og send invite
-        let { data, error } = await _supabase.auth.admin.createUser({
+        if (!email || !password || !navn || !nummer) return;
+        // Opret bruger i auth (signUp)
+        let { data, error } = await _supabase.auth.signUp({
             email,
-            email_confirm: false,
-            user_metadata: { navn, rolle }
+            password,
+            options: {
+                data: { navn, rolle }
+            }
         });
         if (error) {
             document.getElementById('inviteResult').textContent = 'Fejl: ' + error.message;
             return;
         }
         // Opret profil i PROFILES_EMPLOYEE
-        const userId = data.user.id;
-        await _supabase.from('PROFILES_EMPLOYEE').insert({
-            id: userId,
-            navn,
-            medarbejdernummer: nummer,
-            rolle,
-            aktiv: true
-        });
-        document.getElementById('inviteResult').textContent = 'Bruger inviteret: ' + email;
+        const userId = data.user?.id || data.user?.user?.id;
+        if (userId) {
+            await _supabase.from('PROFILES_EMPLOYEE').insert({
+                id: userId,
+                navn,
+                medarbejdernummer: nummer,
+                rolle,
+                aktiv: true
+            });
+        }
+        document.getElementById('inviteResult').textContent = 'Bruger oprettet: ' + email;
         document.getElementById('createUserForm').reset();
         loadUsers();
     });
