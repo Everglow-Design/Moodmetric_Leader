@@ -142,8 +142,35 @@
                             gruppeDiv.innerHTML = `<strong>${gruppeNavn || 'Uden gruppe'}</strong><br>`;
                             grupper[gruppeNavn].forEach(team => {
                                 const li = document.createElement('div');
+                                li.style.display = 'flex';
+                                li.style.alignItems = 'center';
+                                li.style.justifyContent = 'space-between';
+                                li.style.gap = '8px';
                                 li.textContent = team.navn;
+                                // Tilføj slet-knap
+                                const delBtn = document.createElement('button');
+                                delBtn.textContent = 'Slet';
+                                delBtn.style.marginLeft = '12px';
+                                delBtn.style.color = 'white';
+                                delBtn.style.background = '#e74c3c';
+                                delBtn.style.border = 'none';
+                                delBtn.style.borderRadius = '5px';
+                                delBtn.style.padding = '2px 10px';
+                                delBtn.style.cursor = 'pointer';
+                                delBtn.onclick = function() { window.deleteTeam(team.id, team.navn); };
+                                li.appendChild(delBtn);
                                 gruppeDiv.appendChild(li);
+                                        // Slet team-funktion
+                                        window.deleteTeam = async function(teamId, teamNavn) {
+                                            if (!confirm('Er du sikker på, at du vil slette teamet "' + teamNavn + '"?')) return;
+                                            // Slet team-medlemmer først (for at undgå FK constraint)
+                                            await _supabase.from('TEAM_MEMBERS').delete().eq('team_id', teamId);
+                                            // Slet selve teamet
+                                            await _supabase.from('TEAMS').delete().eq('id', teamId);
+                                            // Opdater visning
+                                            loadTeams();
+                                            loadTeamAggregates();
+                                        };
                                 // Dropdowns
                                 const opt1 = document.createElement('option');
                                 opt1.value = team.id;
